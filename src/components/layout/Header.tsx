@@ -45,7 +45,7 @@ const navItems: NavItem[] = [
 
 function DropdownMenu({ items, onClose }: { items: { label: string; to: string }[]; onClose: () => void }) {
   return (
-    <div className="absolute top-full right-0 mt-1 w-48 bg-surface border border-border rounded-lg shadow-sm py-1 z-50">
+    <div className="dropdown-menu absolute top-full right-0 mt-1 w-48 border border-border rounded-xl shadow-lg py-1.5 z-50">
       {items.map(item => (
         <Link
           key={item.to}
@@ -85,8 +85,8 @@ function NavItemComponent({ item }: { item: NavItem }) {
       <div ref={ref} className="relative flex items-center">
         <Link
           to={item.to}
-          className={`px-2.5 py-1 text-[13px] font-medium whitespace-nowrap transition-colors ${
-            isActive ? 'text-accent' : 'text-white/50 hover:text-white/80'
+          className={`nav-link px-2.5 py-1 text-[13px] font-medium whitespace-nowrap transition-colors ${
+            isActive ? 'text-accent nav-link-active' : 'text-white/50 hover:text-white/80'
           }`}
         >
           {item.label}
@@ -109,8 +109,8 @@ function NavItemComponent({ item }: { item: NavItem }) {
   return (
     <Link
       to={item.to}
-      className={`px-2.5 py-1 text-[13px] font-medium whitespace-nowrap transition-colors ${
-        isActive ? 'text-accent' : 'text-white/50 hover:text-white/80'
+      className={`nav-link px-2.5 py-1 text-[13px] font-medium whitespace-nowrap transition-colors ${
+        isActive ? 'text-accent nav-link-active' : 'text-white/50 hover:text-white/80'
       }`}
     >
       {item.label}
@@ -123,13 +123,15 @@ export default function Header() {
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null)
 
   return (
-    <header className="bg-dark sticky top-0 z-50 border-b border-white/5">
+    <header className="bg-dark sticky top-0 z-50 border-b border-white/5 shadow-lg shadow-black/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Top bar */}
-        <div className="flex items-center justify-between h-14">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="text-accent text-lg font-bold font-inter tracking-tight">₪</span>
-            <span className="text-white text-lg font-bold tracking-tight">שקל וחשבון</span>
+        <div className="flex items-center justify-between h-20">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="flex flex-col leading-tight">
+              <span className="text-white text-2xl sm:text-3xl font-bold tracking-tight">שִׁקְלוֹן</span>
+              <span className="text-white/50 text-[11px] sm:text-xs font-normal tracking-wide">שקל וחשבון — הדרך למיליון</span>
+            </div>
           </Link>
 
           <div className="hidden lg:block w-64">

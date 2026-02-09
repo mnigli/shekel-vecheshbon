@@ -13,7 +13,7 @@ export default function ArticleList({ articles, columns = 2 }: ArticleListProps)
 
   if (articles.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-400">
+      <div className="text-center py-12 text-text-tertiary">
         <p className="text-lg">לא נמצאו כתבות</p>
       </div>
     )
@@ -21,8 +21,8 @@ export default function ArticleList({ articles, columns = 2 }: ArticleListProps)
 
   return (
     <div className={`grid ${gridCols} gap-6`}>
-      {articles.map(article => (
-        <ArticleCard key={article.id} article={article} />
+      {articles.map((article, index) => (
+        <ArticleCard key={article.id} article={article} index={index} />
       ))}
     </div>
   )

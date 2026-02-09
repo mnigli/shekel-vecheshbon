@@ -16,8 +16,8 @@ export default function IconPlaceholder({ type, size = 'md' }: IconPlaceholderPr
   const { container, icon } = sizeMap[size]
 
   return (
-    <div className={`${container} bg-bg-subtle flex items-center justify-center`}>
-      <div className="opacity-30">
+    <div className={`${container} icon-placeholder rounded-t-xl flex items-center justify-center`}>
+      <div className="opacity-25">
         <CategoryIcon type={type} className={icon} />
       </div>
     </div>

@@ -11,21 +11,23 @@ export default function HomePage() {
   const latestArticles = allArticles.filter(a => a.id !== featured.id).slice(0, 6)
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-      {/* Hero */}
-      <section className="mb-12">
-        <HeroArticle article={featured} />
-      </section>
-
-      {/* Main content + Sidebar */}
-      <div className="flex flex-col lg:flex-row gap-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Main content */}
         <div className="flex-1 min-w-0">
+          {/* Hero */}
+          <section className="mb-8">
+            <HeroArticle article={featured} />
+          </section>
+
           {/* Latest */}
           <section className="mb-14">
-            <h2 className="text-[15px] font-bold text-dark mb-6 tracking-wide flex items-center gap-3">
-              <span className="w-5 h-px bg-accent inline-block" />
-              חדשות אחרונות
-            </h2>
+            <div className="section-divider mb-6">
+              <h2 className="text-[15px] font-bold text-dark tracking-wide flex items-center gap-3">
+                <span className="w-6 h-0.5 bg-accent inline-block rounded-full animate-gold-line" />
+                חדשות אחרונות
+              </h2>
+            </div>
             <ArticleList articles={latestArticles} />
           </section>
 
@@ -36,13 +38,15 @@ export default function HomePage() {
             return (
               <section key={cat.slug} className="mb-14">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-[15px] font-bold text-dark tracking-wide flex items-center gap-3">
-                    <span className="w-5 h-px bg-accent inline-block" />
-                    {cat.name}
-                  </h2>
+                  <div className="section-divider flex-1">
+                    <h2 className="text-[15px] font-bold text-dark tracking-wide flex items-center gap-3">
+                      <span className="w-6 h-0.5 bg-accent inline-block rounded-full animate-gold-line" />
+                      {cat.name}
+                    </h2>
+                  </div>
                   <Link
                     to={`/category/${cat.slug}`}
-                    className="text-[12px] text-text-tertiary hover:text-dark transition-colors"
+                    className="footer-link text-[12px] text-text-tertiary hover:text-accent transition-colors mr-4"
                   >
                     הכל &larr;
                   </Link>
@@ -53,9 +57,9 @@ export default function HomePage() {
           })}
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar — starts from the top, sticky on scroll */}
         <div className="w-full lg:w-72 flex-shrink-0">
-          <div className="lg:sticky lg:top-28">
+          <div className="lg:sticky lg:top-24">
             <Sidebar />
           </div>
         </div>
