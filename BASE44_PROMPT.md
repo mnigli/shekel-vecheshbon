@@ -13,6 +13,13 @@
 **שפה**: עברית (RTL)
 **דומיין מבוקש**: shiklon.co.il או shiklon.com או shiklon.app — כל וריאציה שזמינה של "שיקלון"
 
+### 📦 קוד מקור קיים
+- **GitHub Repo**: https://github.com/mnigli/shekel-vecheshbon
+- **Live Demo**: https://mnigli.github.io/shekel-vecheshbon/
+- **Stack**: React 19 + Vite 7 + TypeScript + TailwindCSS v4
+
+השתמש בריפו הזה כבסיס — כל הקוד, העיצוב, התוכן והמבנה כבר קיימים שם. בנה על גביו עם התוספות המפורטות למטה.
+
 ---
 
 ## 🎨 מערכת עיצוב (Design System)
