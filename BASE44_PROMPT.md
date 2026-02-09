@@ -1,6 +1,7 @@
-# פרומפט לבניית שִׁקְלוֹן ב-Base44
+# פרומפט לבניית שִׁקְלוֹן ב-Lovable
 
-> העתק את כל הטקסט הזה לתוך Base44 Builder Chat כדי לבנות את האפליקציה.
+> העתק את כל הטקסט הזה לתוך Lovable Chat כדי לבנות את האפליקציה.
+> חבר את הפרויקט ל-GitHub repo: https://github.com/mnigli/shekel-vecheshbon
 
 ---
 
@@ -11,14 +12,14 @@
 **שם המותג**: שִׁקְלוֹן
 **כותרת משנה**: שקל וחשבון — הדרך למיליון
 **שפה**: עברית (RTL)
-**דומיין מבוקש**: shiklon.co.il או shiklon.com או shiklon.app — כל וריאציה שזמינה של "שיקלון"
+**Stack**: React + TypeScript + Tailwind CSS + shadcn/ui + Supabase
 
 ### 📦 קוד מקור קיים
 - **GitHub Repo**: https://github.com/mnigli/shekel-vecheshbon
 - **Live Demo**: https://mnigli.github.io/shekel-vecheshbon/
-- **Stack**: React 19 + Vite 7 + TypeScript + TailwindCSS v4
+- **Stack נוכחי**: React 19 + Vite 7 + TypeScript + TailwindCSS v4
 
-השתמש בריפו הזה כבסיס — כל הקוד, העיצוב, התוכן והמבנה כבר קיימים שם. בנה על גביו עם התוספות המפורטות למטה.
+סנכרן את הפרויקט ל-GitHub repo הזה. השתמש בעיצוב, במבנה ובתוכן שקיימים שם כבסיס, ובנה על גביו עם Supabase backend והתוספות המפורטות למטה.
 
 ---
 
@@ -41,10 +42,153 @@
 
 ### סגנון עיצוב
 - **אסתטיקה**: מגזין לוקסוס עריכתי — נקי, מינימלי, עם נגיעות זהב
+- **רכיבי UI**: השתמש ב-shadcn/ui components (Card, Button, Input, Dialog, Accordion, Tabs, DropdownMenu)
 - **פינות מעוגלות**: `rounded-xl` (12px) על כרטיסים ורכיבים
 - **צל עדין**: על כרטיסים וסרגל ניווט
 - **אנימציות**: fadeInUp חלק על כרטיסים, זהב sweep על כותרות סקשנים
-- **הכל RTL** — כיוון ימין לשמאל
+- **הכל RTL** — כיוון ימין לשמאל, `dir="rtl"` על ה-HTML
+
+---
+
+## 🗄️ Supabase Backend
+
+### חבר Supabase לפרויקט וצור את הטבלאות הבאות:
+
+### טבלה: profiles (פרופילי משתמשים)
+```sql
+create table profiles (
+  id uuid references auth.users primary key,
+  full_name text,
+  role text check (role in ('admin', 'editor', 'writer')) default 'writer',
+  avatar_url text,
+  created_at timestamptz default now()
+);
+
+-- RLS: כל אחד קורא, רק בעלים מעדכנים
+alter table profiles enable row level security;
+create policy "Public profiles" on profiles for select using (true);
+create policy "Users update own" on profiles for update using (auth.uid() = id);
+```
+
+### טבלה: categories (קטגוריות)
+```sql
+create table categories (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  name text not null,
+  description text,
+  color text,
+  bg_color text,
+  scope text check (scope in ('world', 'israel')) not null,
+  sort_order int default 0
+);
+```
+
+### טבלה: articles (כתבות)
+```sql
+create table articles (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  title text not null,
+  description text,
+  content text, -- rich text / markdown
+  category_id uuid references categories(id),
+  author_id uuid references profiles(id),
+  published_at timestamptz,
+  image_url text,
+  is_featured boolean default false,
+  is_trending boolean default false,
+  tags text[],
+  status text check (status in ('draft', 'review', 'published')) default 'draft',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- RLS: כולם קוראים published, כותבים רואים שלהם, עורכים רואים הכל
+alter table articles enable row level security;
+create policy "Public read published" on articles for select using (status = 'published');
+create policy "Writers see own" on articles for select using (auth.uid() = author_id);
+create policy "Writers insert" on articles for insert with check (auth.uid() = author_id);
+create policy "Writers update own" on articles for update using (auth.uid() = author_id);
+```
+
+### טבלה: encyclopedia_entries (אנציקלופדיה)
+```sql
+create table encyclopedia_entries (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  term text not null,
+  short_definition text,
+  content text,
+  section text not null,
+  related_terms text[],
+  tags text[]
+);
+```
+
+### טבלה: guides (מדריכים)
+```sql
+create table guides (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  title text not null,
+  description text,
+  content text,
+  track text check (track in ('beginners', 'reports', 'global', 'values')),
+  sort_order int default 0,
+  read_time int,
+  tags text[]
+);
+```
+
+### טבלה: qa_items (שאלות ותשובות)
+```sql
+create table qa_items (
+  id uuid primary key default gen_random_uuid(),
+  question text not null,
+  answer text not null,
+  category text,
+  tags text[]
+);
+```
+
+### טבלה: podcasts (פודקאסטים)
+```sql
+create table podcasts (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  title text not null,
+  description text,
+  audio_url text, -- Supabase Storage URL
+  duration int, -- דקות
+  episode int,
+  season int default 1,
+  published_at timestamptz,
+  author_id uuid references profiles(id),
+  tags text[],
+  status text check (status in ('draft', 'published')) default 'draft',
+  created_at timestamptz default now()
+);
+```
+
+### טבלה: newsletter_subscribers (ניוזלטר)
+```sql
+create table newsletter_subscribers (
+  id uuid primary key default gen_random_uuid(),
+  email text unique not null,
+  name text,
+  subscribed_at timestamptz default now(),
+  is_active boolean default true
+);
+```
+
+### Supabase Storage
+צור bucket בשם `podcast-audio` לאחסון קבצי MP3.
+צור bucket בשם `article-images` לתמונות כתבות.
+
+### Supabase Auth
+הפעל Authentication עם Email/Password.
+תפקידים (roles) מנוהלים דרך טבלת profiles.
 
 ---
 
@@ -54,220 +198,91 @@
 **ליאאוט שני עמודות**: תוכן ראשי (70%) + סרגל צד (30%)
 
 **תוכן ראשי:**
-- **כתבה ראשית (Hero)**: כתבה מודגשת עם רקע גרדיאנט כהה, כותרת לבנה גדולה, תיאור, שם כותב ותאריך
-- **חדשות אחרונות**: גריד כרטיסים (6 כתבות אחרונות)
-- **סקשנים לפי קטגוריה**: 4 קטגוריות ראשונות, כל אחת עם כותרת + לינק "הכל" + 4 כתבות
+- **כתבה ראשית (Hero)**: כתבה מודגשת (is_featured=true) עם רקע גרדיאנט כהה, כותרת לבנה גדולה, תיאור, שם כותב ותאריך
+- **חדשות אחרונות**: גריד כרטיסים (6 כתבות אחרונות מ-Supabase)
+- **סקשנים לפי קטגוריה**: 4 קטגוריות ראשונות (לפי sort_order), כל אחת עם כותרת + לינק "הכל" + 4 כתבות
 
 **סרגל צד (Sticky):**
 - ווידג'ט נתוני שוק חיים (מדדים, מט"ח)
 - ווידג'ט מחירי מניות חיים
-- ווידג'ט טרנדים ברשתות חברתיות (דמו)
-- רשימת כתבות טרנדינג
+- ווידג'ט טרנדים ברשתות חברתיות (דמו סטטי)
+- רשימת כתבות טרנדינג (is_trending=true)
+- ווידג'ט פרק פודקאסט אחרון
 - הרשמה לניוזלטר
 
 ### 2. עמוד קטגוריה (/category/:slug)
-- כותרת הקטגוריה ותיאור
+- כותרת הקטגוריה ותיאור (מ-Supabase)
 - גריד כתבות מאותה קטגוריה
 - Breadcrumbs
 
 ### 3. עמוד כתבה (/article/:slug)
 - Breadcrumbs
 - כותרת, קטגוריה, שם כותב, תאריך
-- תוכן הכתבה (פסקאות)
-- כתבות קשורות בתחתית
+- תמונה ראשית (מ-Supabase Storage)
+- תוכן הכתבה (Markdown/Rich text)
+- כתבות קשורות בתחתית (אותה קטגוריה)
 
 ### 4. חיפוש (/search)
 - שורת חיפוש
+- חיפוש full-text ב-Supabase על כתבות, אנציקלופדיה ומדריכים
 - תוצאות עם הדגשת מילת החיפוש
-- חיפוש בכתבות, אנציקלופדיה ומדריכים
 
 ### 5. אנציקלופדיה (/encyclopedia)
 - 8 סקשנים עם אייקונים
-- ערכים לכל סקשן
-- עמוד ערך בודד עם הגדרה, תוכן, ומושגים קשורים
+- ערכים לכל סקשן (מ-Supabase)
+- עמוד ערך בודד (/encyclopedia/entry/:slug) עם הגדרה, תוכן, ומושגים קשורים
 
 ### 6. מדריכים (/guides)
 - 4 מסלולים: מתחילים, דוחות כספיים, ישראל+עולם, ערכים ומשמעת
 - מדריכים בכל מסלול עם סדר, זמן קריאה
-- עמוד מדריך בודד
+- עמוד מדריך בודד (/guide/:slug)
 
 ### 7. כלים (/tools)
-- מחשבון תשואה
-- מחשבון ריבית דריבית
-- מחשבון משך חיים
+- מחשבון תשואה (חישוב client-side)
+- מחשבון ריבית דריבית (חישוב client-side)
+- מחשבון משך חיים (חישוב client-side)
 
 ### 8. שאלות ותשובות (/qa)
-- 25 שאלות ב-5 קטגוריות
-- אקורדיון עם שאלה ותשובה
-- סינון לפי קטגוריה
+- שאלות מ-Supabase ב-4 קטגוריות
+- אקורדיון (shadcn Accordion) עם שאלה ותשובה
+- סינון לפי קטגוריה (shadcn Tabs)
 
 ### 9. 🆕 פודקאסטים (/podcasts)
-- רשימת פרקים עם נגן אודיו
-- כל פרק: כותרת, תיאור, אורך, תאריך, נגן אודיו
-- אפשרות להעלאת קבצי אודיו דרך ה-CMS
-- RSS feed אוטומטי לפרסום בפלטפורמות (Spotify, Apple Podcasts)
-- הטמעת נגן גם בדף הבית (סרגל צד)
+- רשימת פרקים מ-Supabase
+- כל פרק: כותרת, תיאור, אורך, תאריך, נגן אודיו HTML5 (מ-Supabase Storage)
+- סינון לפי עונה (shadcn Tabs)
+- לינקים ל-Spotify / Apple Podcasts (לעתיד)
 
-### 10. 🆕 ניהול תוכן — CMS (/admin)
-- **מאחורי הקלעים** — ממשק ניהול לצוות הכותבים
+### 10. 🆕 ממשק ניהול — CMS (/admin)
+- **מוגן**: רק משתמשים מחוברים עם role=admin/editor/writer
 - פירוט בסקשן CMS למטה
-
----
-
-## 📊 מסד נתונים (Database Schema)
-
-### טבלה: Articles (כתבות)
-| שדה | סוג | תיאור |
-|------|------|--------|
-| id | auto | מזהה |
-| slug | text | כתובת URL |
-| title | text | כותרת |
-| description | text | תיאור קצר |
-| content | richtext | תוכן הכתבה |
-| category | relation→Categories | קטגוריה |
-| author | relation→Users | כותב |
-| publishedAt | datetime | תאריך פרסום |
-| imageUrl | image | תמונה ראשית |
-| isFeatured | boolean | כתבה מודגשת |
-| isTrending | boolean | טרנדינג |
-| tags | tags | תגיות |
-| status | enum (draft/review/published) | סטטוס |
-
-### טבלה: Categories (קטגוריות)
-| שדה | סוג | תיאור |
-|------|------|--------|
-| id | auto | מזהה |
-| slug | text | מזהה URL |
-| name | text | שם |
-| description | text | תיאור |
-| color | text | צבע |
-| scope | enum (world/israel) | עולם/ישראל |
-
-**קטגוריות ראשוניות:**
-
-| slug | שם | תוכן | עולם/ישראל |
-|------|-----|-------|------------|
-| stock-market | חדשות שווקים | וול סטריט, מדדים, סחורות | 🌍 עולם |
-| insurance | דוחות חברות | דוחות רבעוניים של חברות גלובליות | 🌍 עולם |
-| small-business | עולם שמשפיע עלינו | פד, ECB, נפט, סין, גיאופוליטיקה | 🌍 עולם |
-| real-estate | ת״א היום | בורסת תל אביב, מניות ישראליות | 🇮🇱 ישראל |
-| savings | בנק ישראל / מדד | ריבית, אינפלציה, שקל | 🇮🇱 ישראל |
-| kupot-gemel | קופות גמל | פנסיה, קופות גמל | 🇮🇱 ישראל |
-| tax-benefits | מסים והטבות | ארנונה, נקודות זיכוי | 🇮🇱 ישראל |
-| gemachim | גמ"חים | הלוואות ללא ריבית | 🇮🇱 ישראל |
-
-### טבלה: EncyclopediaEntries (אנציקלופדיה)
-| שדה | סוג | תיאור |
-|------|------|--------|
-| id | auto | מזהה |
-| slug | text | כתובת URL |
-| term | text | המושג |
-| shortDefinition | text | הגדרה קצרה |
-| content | richtext | הסבר מלא |
-| section | enum | סקשן (investment-basics, israeli-stocks, etfs-funds, bonds-interest, financial-reports, macro-global, tax-accounts, investment-kashrut) |
-| relatedTerms | relation→self[] | מושגים קשורים |
-| tags | tags | תגיות |
-
-**8 סקשנים:**
-1. יסודות ההשקעה (15 ערכים): מניה, אג"ח, קרן נאמנות, תעודת סל, תיק השקעות, פיזור, סיכון, תשואה, דיבידנד, שווי שוק, נזילות, מינוף, שורט, לונג, ברוקר
-2. מניות ומדדים בישראל (3): ת"א-125, ת"א-35, הנפקה ראשונה
-3. תעודות סל וקרנות (2): קרן סל, דמי ניהול
-4. אג"ח וריבית (3): אג"ח ממשלתי, קופון, ריבית בנק ישראל
-5. דוחות כספיים (3): מאזן, רווח נקי, מכפיל רווח
-6. מאקרו וגלובלי (3): אינפלציה, תמ"ג, מיתון
-7. מיסוי וחשבונות (2): מס רווח הון, קרן השתלמות
-8. כשרות השקעות (3): היתר עסקה, השקעה אתית, הונאות
-
-### טבלה: Guides (מדריכים)
-| שדה | סוג | תיאור |
-|------|------|--------|
-| id | auto | מזהה |
-| slug | text | כתובת URL |
-| title | text | כותרת |
-| description | text | תיאור |
-| content | richtext | תוכן |
-| track | enum | מסלול (beginners, reports, global, values) |
-| order | number | סדר במסלול |
-| readTime | number | זמן קריאה בדקות |
-| tags | tags | תגיות |
-
-**4 מסלולים:**
-1. מתחילים (8 מדריכים): שוק ההון, חשבון מסחר, מניות, אג"ח, קרנות, פיזור, גרפים, טעויות נפוצות
-2. דוחות כספיים (5): מאזן, רווח והפסד, תזרים, יחסים פיננסיים, ניתוח שנתי
-3. ישראל + עולם (5): הפד, אינפלציה, משבר, מלחמות סחר, סין/אירופה/אמריקה
-4. ערכים ומשמעת (2): השקעה לפי ערכים, סבלנות ומשמעת
-
-### טבלה: QAItems (שאלות ותשובות)
-| שדה | סוג | תיאור |
-|------|------|--------|
-| id | auto | מזהה |
-| question | text | שאלה |
-| answer | richtext | תשובה |
-| category | enum | קטגוריה (מתחילים, מיסוי, הלכה ופיננסים, שוק ההון) |
-| tags | tags | תגיות |
-
-**25 שאלות** ב-4 קטגוריות.
-
-### טבלה: Podcasts (פודקאסטים) — 🆕
-| שדה | סוג | תיאור |
-|------|------|--------|
-| id | auto | מזהה |
-| slug | text | כתובת URL |
-| title | text | כותרת הפרק |
-| description | text | תיאור |
-| audioFile | file | קובץ אודיו (mp3) |
-| duration | number | אורך בדקות |
-| episode | number | מספר פרק |
-| season | number | עונה |
-| publishedAt | datetime | תאריך |
-| author | relation→Users | מנחה/כותב |
-| tags | tags | תגיות |
-| status | enum (draft/published) | סטטוס |
-
-### טבלה: Newsletter (רשימת תפוצה) — 🆕
-| שדה | סוג | תיאור |
-|------|------|--------|
-| id | auto | מזהה |
-| email | email | כתובת מייל |
-| name | text | שם (אופציונלי) |
-| subscribedAt | datetime | תאריך הרשמה |
-| isActive | boolean | פעיל |
-
-### טבלה: Tools (כלים)
-| שדה | סוג | תיאור |
-|------|------|--------|
-| id | auto | מזהה |
-| slug | text | מזהה URL |
-| title | text | שם הכלי |
-| description | text | תיאור |
-| type | enum | סוג (return-calculator, compound-interest, duration-calculator) |
 
 ---
 
 ## 👥 מערכת ניהול תוכן (CMS)
 
-### תפקידים (Roles)
+### אימות והרשאות (Supabase Auth + RLS)
 | תפקיד | הרשאות |
 |---------|---------|
-| **מנהל** (admin) | גישה מלאה — ניהול משתמשים, עריכת הכל, פרסום, מחיקה, הגדרות אתר |
+| **מנהל** (admin) | גישה מלאה — ניהול משתמשים, עריכת הכל, פרסום, מחיקה |
 | **עורך** (editor) | אישור/דחיית כתבות, עריכת כל התוכן, פרסום |
 | **כותב** (writer) | יצירת כתבות/מדריכים/פודקאסטים, עריכת תוכן שלו בלבד, שליחה לאישור |
 
 ### ממשק CMS (/admin)
-- **דשבורד**: סטטיסטיקות — כמה כתבות, צפיות, מנויים לניוזלטר
-- **ניהול כתבות**: רשימה, יצירה, עריכה, שינוי סטטוס (טיוטה→בדיקה→מפורסם)
-- **ניהול אנציקלופדיה**: הוספת/עריכת ערכים
-- **ניהול מדריכים**: הוספת/עריכת מדריכים
-- **ניהול שאלות ותשובות**: הוספת/עריכת שאלות
-- **ניהול פודקאסטים**: העלאת פרקים עם קובץ אודיו
-- **ניהול ניוזלטר**: צפייה ברשימת מנויים, שליחת ניוזלטר
-- **ניהול משתמשים** (למנהל בלבד): הוספת כותבים/עורכים
+- **דשבורד**: סטטיסטיקות — כמה כתבות, פרקי פודקאסט, מנויי ניוזלטר (queries מ-Supabase)
+- **ניהול כתבות**: רשימה, יצירה, עריכה, שינוי סטטוס (טיוטה→בדיקה→מפורסם). עורך Rich Text / Markdown. העלאת תמונות ל-Supabase Storage.
+- **ניהול אנציקלופדיה**: CRUD על encyclopedia_entries
+- **ניהול מדריכים**: CRUD על guides
+- **ניהול שאלות ותשובות**: CRUD על qa_items
+- **ניהול פודקאסטים**: העלאת פרקים עם קובץ אודיו ל-Supabase Storage
+- **ניהול ניוזלטר**: צפייה ברשימת מנויים
+- **ניהול משתמשים** (למנהל בלבד): שינוי role לכותבים/עורכים
 
 ### תהליך עבודה (Workflow)
-1. כותב יוצר כתבה → סטטוס: **טיוטה**
-2. כותב מגיש לאישור → סטטוס: **בבדיקה**
-3. עורך מאשר → סטטוס: **מפורסם** (מופיע באתר)
-4. עורך יכול גם לערוך ולהחזיר לכותב עם הערות
+1. כותב יוצר כתבה → סטטוס: **draft** (טיוטה)
+2. כותב מגיש לאישור → סטטוס: **review** (בבדיקה)
+3. עורך מאשר → סטטוס: **published** (מפורסם, מופיע באתר)
+4. עורך יכול גם לערוך ולהחזיר לכותב
 
 ---
 
@@ -275,37 +290,34 @@
 
 ### דף פודקאסטים (/podcasts)
 - כותרת ראשית: "הפודקאסט של שִׁקְלוֹן"
-- רשימת פרקים עם:
-  - תמונת פרק / אייקון
+- רשימת פרקים מ-Supabase (status=published, sorted by episode desc)
+- כל פרק:
   - כותרת + תיאור קצר
   - אורך (דקות)
-  - נגן אודיו inline (play/pause, progress bar)
+  - נגן אודיו HTML5 `<audio>` עם src מ-Supabase Storage
   - תאריך פרסום
 - סינון לפי עונה
-- לינקים ל-Spotify / Apple Podcasts (לעתיד)
 
 ### נגן מיני בסרגל צד
 - ווידג'ט "פרק אחרון" בסרגל הצד של דף הבית
-- תמונה קטנה + כותרת + כפתור Play
+- כותרת + כפתור Play קטן
 
-### RSS Feed
-- יצירת RSS feed אוטומטי מהפרקים המפורסמים
-- URL ציבורי שניתן להגיש לפלטפורמות פודקאסט
+### העלאת פרקים (מה-CMS)
+- טופס: כותרת, תיאור, עונה, מספר פרק, תגיות
+- העלאת קובץ MP3 ל-Supabase Storage bucket `podcast-audio`
+- שמירה בטבלת podcasts
 
 ---
 
 ## 📧 ניוזלטר
 
 ### הרשמה
-- טופס הרשמה בסרגל הצד (שם + אימייל)
-- פופאפ הרשמה אחרי 30 שניות באתר (אם לא רשום)
-- אישור הצלחה עם אנימציה
+- טופס הרשמה בסרגל הצד (שם + אימייל) → INSERT ל-newsletter_subscribers ב-Supabase
+- אישור הצלחה עם toast notification (shadcn Toast)
 
-### שליחה (מתוך ה-CMS)
-- ממשק לכתיבת ניוזלטר חדש
-- בחירת נמענים (כל המנויים / סינון)
-- שליחת אימייל עם עיצוב מותאם למותג שִׁקְלוֹן
-- סטטיסטיקות: כמה נשלח, כמה נפתח
+### צפייה (מתוך ה-CMS)
+- רשימת מנויים פעילים מ-Supabase
+- אפשרות ייצוא CSV
 
 ---
 
@@ -321,12 +333,12 @@
   - בנק ישראל / מדד (/category/savings)
   - דוחות (/category/insurance)
   - עולם שמשפיע עלינו (/category/small-business)
-  - מדריכים ← תפריט נפתח:
+  - מדריכים ← DropdownMenu (shadcn):
     - מתחילים (/guides/beginners)
     - להבין דוחות (/guides/reports)
     - ישראל + עולם (/guides/global)
     - ערכים ומשמעת (/guides/values)
-  - אנציקלופדיה ← תפריט נפתח:
+  - אנציקלופדיה ← DropdownMenu (shadcn):
     - יסודות ההשקעה
     - מניות ומדדים
     - תעודות סל וקרנות
@@ -339,12 +351,12 @@
   - כלים (/tools)
   - שאלות ותשובות (/qa)
 - **חיפוש**: שורת חיפוש בצד שמאל
-- **תפריט מובייל**: המבורגר עם הכל
+- **תפריט מובייל**: Sheet (shadcn) עם הכל
 
 ### Footer
 - לוגו + תיאור קצר
 - לינקים מהירים לכל הדפים
-- קו מפריד זהב
+- קו מפריד זהב (#c8a951)
 - © שִׁקְלוֹן — אתר לדוגמה בלבד
 
 ---
@@ -359,9 +371,26 @@
 
 ---
 
+## 📝 קטגוריות ראשוניות — seed data
+
+הכנס את הקטגוריות הבאות ל-Supabase:
+
+| slug | name | description | scope | sort_order |
+|------|------|-------------|-------|------------|
+| stock-market | חדשות שווקים | חדשות מוול סטריט, הבורסות הבינלאומיות ושוקי ההון בעולם | world | 1 |
+| insurance | דוחות חברות | דוחות כספיים ותוצאות רבעוניות של חברות מובילות בעולם | world | 2 |
+| small-business | עולם שמשפיע עלינו | מאקרו-כלכלה גלובלית, בנקים מרכזיים, אנרגיה וגיאופוליטיקה | world | 3 |
+| real-estate | ת״א היום | חדשות מהבורסה בתל אביב, מניות ישראליות ושוק ההון המקומי | israel | 4 |
+| savings | בנק ישראל / מדד | החלטות ריבית, מדד המחירים לצרכן, אינפלציה ומדיניות מוניטרית | israel | 5 |
+| kupot-gemel | קופות גמל | חיסכון פנסיוני, קופות גמל להשקעה והשוואת מסלולים | israel | 6 |
+| tax-benefits | מסים והטבות | הטבות מס, זיכויים ומענקים למשפחות ולעצמאים | israel | 7 |
+| gemachim | גמ"חים | גמ"חים קהילתיים, הלוואות ללא ריבית ופתרונות מימון | israel | 8 |
+
+---
+
 ## 📝 תוכן ראשוני — כתבות לטעינה
 
-צור 32 כתבות לדוגמה בעברית לפי החלוקה הבאה:
+צור 32 כתבות לדוגמה בעברית ב-Supabase (status=published) לפי החלוקה הבאה:
 
 ### 🌍 חדשות שווקים (stock-market) — 8 כתבות
 1. דוח רווחים של קוקה-קולה Q4
@@ -415,18 +444,29 @@
 
 ---
 
-## 🔧 תוכן נוסף לטעינה
+## 🔧 תוכן נוסף לטעינה ב-Supabase
 
 ### אנציקלופדיה — 34 ערכים ב-8 סקשנים
-(ערכים בסיסיים כמו: מניה, אג"ח, קרן נאמנות, תעודת סל, דיבידנד, מכפיל רווח, אינפלציה, מיתון, מס רווח הון, וכו')
+**סקשנים:**
+1. investment-basics — יסודות ההשקעה (15 ערכים): מניה, אג"ח, קרן נאמנות, תעודת סל, תיק השקעות, פיזור, סיכון, תשואה, דיבידנד, שווי שוק, נזילות, מינוף, שורט, לונג, ברוקר
+2. israeli-stocks — מניות ומדדים בישראל (3): ת"א-125, ת"א-35, הנפקה ראשונה
+3. etfs-funds — תעודות סל וקרנות (2): קרן סל, דמי ניהול
+4. bonds-interest — אג"ח וריבית (3): אג"ח ממשלתי, קופון, ריבית בנק ישראל
+5. financial-reports — דוחות כספיים (3): מאזן, רווח נקי, מכפיל רווח
+6. macro-global — מאקרו וגלובלי (3): אינפלציה, תמ"ג, מיתון
+7. tax-accounts — מיסוי וחשבונות (2): מס רווח הון, קרן השתלמות
+8. investment-kashrut — כשרות השקעות (3): היתר עסקה, השקעה אתית, הונאות
 
 ### מדריכים — 20 מדריכים ב-4 מסלולים
-(מתחילים: 8, דוחות: 5, גלובלי: 5, ערכים: 2)
+1. beginners — מתחילים (8): שוק ההון, חשבון מסחר, מניות, אג"ח, קרנות, פיזור, גרפים, טעויות נפוצות
+2. reports — דוחות כספיים (5): מאזן, רווח והפסד, תזרים, יחסים פיננסיים, ניתוח שנתי
+3. global — ישראל + עולם (5): הפד, אינפלציה, משבר, מלחמות סחר, סין/אירופה/אמריקה
+4. values — ערכים ומשמעת (2): השקעה לפי ערכים, סבלנות ומשמעת
 
 ### שאלות ותשובות — 25 שאלות ב-4 קטגוריות
-(מתחילים: 8, מיסוי: 5, הלכה: 5, שוק ההון: 7)
+(מתחילים: 8, מיסוי: 5, הלכה ופיננסים: 5, שוק ההון: 7)
 
-### כלים — 3 מחשבונים פיננסיים
+### כלים — 3 מחשבונים פיננסיים (client-side, ללא DB)
 1. מחשבון תשואה
 2. מחשבון ריבית דריבית
 3. מחשבון משך חיים
@@ -435,15 +475,16 @@
 
 ## ⚡ אינטגרציות
 
-### נתוני שוק חיים (אם אפשר)
+### נתוני שוק חיים
 - **Finnhub API** למחירי מניות אמריקאיות (ETFs: SPY, DIA, QQQ)
 - **Yahoo Finance** (דרך CORS proxy) למדדי ת"א 125, ת"א 35
-- **ExchangeRate API** לשערי מט"ח (דולר/שקל, אירו/שקל)
+- **ExchangeRate API** (open.er-api.com) לשערי מט"ח (דולר/שקל, אירו/שקל)
 - רענון כל 5 דקות
 - Fallback לנתוני דמו אם ה-API לא עובד
 
-### אימייל
-- אינטגרציה לשליחת ניוזלטר (אימייל מובנה ב-Base44 או Mailgun/SendGrid)
+### Supabase Edge Functions (לעתיד)
+- שליחת ניוזלטר (Resend / SendGrid)
+- יצירת RSS feed לפודקאסטים
 
 ---
 
@@ -451,7 +492,7 @@
 
 - **דסקטופ**: שתי עמודות (תוכן + סרגל צד)
 - **טאבלט**: סרגל צד מתחת לתוכן
-- **מובייל**: עמודה אחת, תפריט המבורגר, כרטיסים ברוחב מלא
+- **מובייל**: עמודה אחת, Sheet menu (shadcn), כרטיסים ברוחב מלא
 
 ---
 
@@ -465,7 +506,7 @@
 
 ## 🌐 דומיין
 
-הקצה דומיין מתאים. העדפות:
+הגדר דומיין מותאם אישית. העדפות:
 1. shiklon.com
 2. shiklon.co.il
 3. shiklon.app
@@ -479,18 +520,23 @@
 
 | רכיב | פירוט |
 |-------|--------|
+| פלטפורמה | Lovable |
+| Stack | React + TypeScript + Tailwind + shadcn/ui |
+| Backend | Supabase (PostgreSQL + Auth + Storage) |
+| GitHub | סנכרון אוטומטי ל-https://github.com/mnigli/shekel-vecheshbon |
 | שפה | עברית, RTL |
 | פונטים | Heebo + Inter |
 | צבע אקסנט | #c8a951 (זהב) |
 | רקע | #f8f7f4 (שמנת) |
-| מסד נתונים | Articles, Categories, Encyclopedia, Guides, QA, Podcasts, Newsletter, Tools, Users |
-| אימות | כותבים + עורכים + מנהלים |
-| CMS | ממשק ניהול מלא עם workflow |
-| פודקאסטים | נגן אודיו + RSS |
-| ניוזלטר | הרשמה + שליחה |
+| טבלאות DB | articles, categories, encyclopedia_entries, guides, qa_items, podcasts, newsletter_subscribers, profiles |
+| אימות | Supabase Auth + RLS (admin/editor/writer) |
+| CMS | ממשק ניהול מלא עם workflow (draft→review→published) |
+| Storage | Supabase Storage (podcast-audio, article-images) |
+| פודקאסטים | נגן אודיו HTML5 + Supabase Storage |
+| ניוזלטר | הרשמה ל-Supabase + ייצוא CSV |
 | תוכן | 70% עולם / 30% ישראל |
 | כתבות | 32 כתבות ראשוניות |
 | אנציקלופדיה | 34 ערכים |
 | מדריכים | 20 מדריכים |
 | Q&A | 25 שאלות |
-| כלים | 3 מחשבונים |
+| כלים | 3 מחשבונים (client-side) |
